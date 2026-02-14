@@ -3,14 +3,6 @@
 A serverless image generation API deployed on [Modal](https://modal.com).
 Uses **Stable Diffusion XL Turbo** — a fast, distilled model that generates images in 1-4 inference steps on a single T4 GPU.
 
-## Project Structure
-
-```
-Modal_deploy/
-├── app.py              # Modal app — model loading, inference, web API
-├── requirements.txt    # Local dependencies (just the modal package)
-└── README.md
-```
 
 ## Prerequisites
 
@@ -25,28 +17,17 @@ Modal_deploy/
 pip install -r requirements.txt
 ```
 
-Or directly:
-
-```bash
-pip install modal
-```
-
 ### 2. Authenticate with Modal
 
 ```bash
 modal setup
 ```
 
-This opens a browser window to log in and creates a local API token.
-If `modal` isn't on your PATH, use `python -m modal setup`.
-
 ### 3. Test locally (runs on Modal's cloud GPU)
 
 ```bash
 modal run app.py --prompt "a cat wearing sunglasses on a beach"
 ```
-
-This sends the prompt to Modal, generates the image on a cloud GPU, and saves `output.png` locally.
 
 You can also customise the output path and inference steps:
 
@@ -92,33 +73,3 @@ response = requests.post(url, json={
 with open("image.png", "wb") as f:
     f.write(response.content)
 ```
-
-### Interactive API docs
-
-After deploying, visit your endpoint URL in a browser.
-Modal serves auto-generated Swagger/OpenAPI docs (enabled via `docs=True`).
-
-## API Reference
-
-**POST** `/api_generate`
-
-| Field      | Type   | Default                                           | Description                     |
-|------------|--------|---------------------------------------------------|---------------------------------|
-| `prompt`   | string | `"a photo of an astronaut riding a horse on mars"` | Text description of the image   |
-| `num_steps`| int    | `4`                                               | Inference steps (1-4 for Turbo) |
-| `seed`     | int    | `null`                                            | Optional seed for reproducibility |
-
-**Response:** `image/png` binary
-
-## How It Works
-
-1. **Container image** — Modal builds a container with `diffusers`, `torch`, and `transformers` pre-installed.
-2. **Model loading** — The `@modal.enter()` method loads SDXL-Turbo into GPU memory once when the container cold-starts.
-3. **Inference** — Each request runs the diffusion pipeline for the specified number of steps and returns PNG bytes.
-4. **Auto-scaling** — Modal automatically scales containers up/down based on traffic (including scaling to zero when idle).
-
-## Cost
-
-- Modal's free tier includes $30/month in compute credits.
-- SDXL-Turbo on a T4 GPU generates an image in ~1 second, costing fractions of a cent per image.
-- Containers auto-stop after 5 minutes of inactivity (`container_idle_timeout=300`).
