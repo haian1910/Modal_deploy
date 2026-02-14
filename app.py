@@ -1,17 +1,9 @@
-# ---
-# Text-to-Image Generation API on Modal
-# Deploys Stable Diffusion XL Turbo as a serverless web API.
-# ---
-
 from __future__ import annotations
 
 import io
 from pathlib import Path
 
 import modal
-
-# ── Modal App & Container Image ──────────────────────────────────────────────
-# Define the app and the container image with all required dependencies.
 
 app = modal.App("text-to-image-api")
 
@@ -28,16 +20,7 @@ image = (
     )
 )
 
-# ── Model Configuration ─────────────────────────────────────────────────────
-# SDXL-Turbo is a fast, distilled model that generates images in just 1-4 steps.
-# It's small enough to run on a single T4 GPU, making it cost-effective on Modal.
-
 MODEL_ID = "stabilityai/sdxl-turbo"
-
-
-# ── Inference Class ──────────────────────────────────────────────────────────
-# The @modal.enter decorator loads the model once when the container starts.
-# Subsequent requests reuse the already-loaded model for fast inference.
 
 @app.cls(image=image, gpu="T4", container_idle_timeout=300)
 class TextToImage:
@@ -64,7 +47,7 @@ class TextToImage:
         image = self.pipe(
             prompt=prompt,
             num_inference_steps=num_steps,
-            guidance_scale=0.0,  # SDXL-Turbo works best with guidance_scale=0
+            guidance_scale=0.0,
             generator=generator,
         ).images[0]
 
@@ -72,8 +55,7 @@ class TextToImage:
         image.save(buf, format="PNG")
         return buf.getvalue()
 
-    # ── Web API Endpoint ─────────────────────────────────────────────────────
-    # POST /generate — accepts JSON with a prompt, returns a PNG image.
+    # Web API Endpoint
 
     @modal.fastapi_endpoint(method="POST", docs=True)
     def api_generate(self, body: dict):
@@ -88,9 +70,7 @@ class TextToImage:
         return Response(content=image_bytes, media_type="image/png")
 
 
-# ── CLI Entrypoint ───────────────────────────────────────────────────────────
-# Run locally with: modal run app.py --prompt "your prompt here"
-# The image is generated on Modal's cloud GPU and saved locally.
+# CLI Entrypoint
 
 @app.local_entrypoint()
 def main(
